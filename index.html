@@ -1,0 +1,1301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Dispute Desk — A Gamified Simulation</title>
+<style>
+/* ================== RESET ================== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; font-family: 'Calibri', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; }
+button { font-family: inherit; cursor: pointer; border: none; background: none; }
+
+/* ================== TOKENS ================== */
+:root {
+  --navy: #14284E;
+  --teal: #00695C;
+  --ink: #1F1F24;
+  --muted: #9CA1AB;
+  --paper: #F5F7FA;
+  --good: #2EC27E;
+  --bad:  #E94B4B;
+  --gold: #F5B82E;
+  --rule: #2A2F3D;
+  --bg-1: #0B1222;
+  --bg-2: #0F1B36;
+  /* live palette variables (rewritten per question from module palette) */
+  --mod-primary: #14284E;
+  --mod-accent:  #00695C;
+  --mod-tint:    #E6F0EE;
+}
+
+/* ================== BODY ================== */
+body {
+  color: #E7E9EF;
+  background:
+    radial-gradient(1200px 800px at 20% 0%, rgba(0,105,92,0.18), transparent 60%),
+    radial-gradient(1000px 700px at 90% 100%, rgba(20,40,78,0.55), transparent 60%),
+    linear-gradient(180deg, var(--bg-1) 0%, var(--bg-2) 100%);
+  min-height: 100vh;
+  overflow-x: hidden;
+  transition: background 800ms ease;
+}
+body.tense {
+  background:
+    radial-gradient(1200px 800px at 20% 0%, rgba(233,75,75,0.22), transparent 60%),
+    radial-gradient(1000px 700px at 90% 100%, rgba(20,40,78,0.6), transparent 60%),
+    linear-gradient(180deg, #1A0F1A 0%, #0F1B36 100%);
+}
+
+/* ================== SCREENS ================== */
+.screen { display: none; min-height: 100vh; padding: 24px; }
+.screen.active { display: block; animation: fadeIn 420ms ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ================== SPLASH ================== */
+.splash-wrap {
+  max-width: 900px; margin: 0 auto; padding: 80px 24px;
+  text-align: center;
+}
+.brand-mark {
+  font-size: 18px; letter-spacing: 0.2em; text-transform: uppercase;
+  color: var(--teal); font-weight: 700; margin-bottom: 8px;
+}
+.brand-tag {
+  font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 64px;
+}
+.title {
+  font-size: 64px; font-weight: 800; line-height: 1.05;
+  background: linear-gradient(90deg, #FFFFFF 0%, #9BE2D3 100%);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+  margin-bottom: 16px;
+}
+.subtitle {
+  font-size: 22px; color: #B8BEC9; font-weight: 400;
+  margin-bottom: 48px; max-width: 640px; margin-left: auto; margin-right: auto;
+}
+.stat-row {
+  display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;
+  margin-bottom: 48px;
+}
+.stat-chip {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  padding: 14px 22px; border-radius: 999px;
+  font-size: 14px; color: #DFE3EC;
+}
+.stat-chip b { color: var(--gold); font-weight: 700; }
+
+.name-form {
+  display: flex; flex-direction: column; gap: 16px;
+  max-width: 440px; margin: 0 auto;
+}
+.name-input {
+  width: 100%; padding: 18px 20px;
+  background: rgba(255,255,255,0.06);
+  border: 2px solid rgba(255,255,255,0.1);
+  color: #FFFFFF; font-size: 18px; border-radius: 12px;
+  transition: border 200ms ease, background 200ms ease;
+}
+.name-input:focus {
+  outline: none;
+  border-color: var(--teal);
+  background: rgba(255,255,255,0.1);
+}
+.name-input::placeholder { color: #6B717E; }
+
+.primary-btn {
+  background: linear-gradient(135deg, var(--teal) 0%, #4FB7A7 100%);
+  color: #FFFFFF; font-size: 18px; font-weight: 700;
+  padding: 18px 32px; border-radius: 12px;
+  transition: transform 140ms ease, box-shadow 200ms ease;
+  box-shadow: 0 8px 24px rgba(0,105,92,0.35);
+  letter-spacing: 0.02em;
+}
+.primary-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(0,105,92,0.5); }
+.primary-btn:active { transform: translateY(0); }
+
+.ghost-btn {
+  background: transparent; color: #B8BEC9; font-size: 14px;
+  padding: 12px 18px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15);
+  transition: background 180ms ease, color 180ms ease;
+}
+.ghost-btn:hover { background: rgba(255,255,255,0.06); color: #FFFFFF; }
+
+.rules-card {
+  margin-top: 56px; padding: 28px; border-radius: 16px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  text-align: left;
+}
+.rules-title {
+  font-size: 16px; letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--gold); font-weight: 700; margin-bottom: 16px;
+}
+.rules-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 20px 32px;
+}
+.rule { display: flex; gap: 14px; align-items: flex-start; }
+.rule-n {
+  flex: 0 0 28px; height: 28px; border-radius: 50%;
+  background: var(--teal); color: #FFFFFF; font-size: 13px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+.rule-text { font-size: 14.5px; color: #CFD5E0; line-height: 1.45; }
+
+/* ================== GAME HUD ================== */
+.hud {
+  display: flex; justify-content: space-between; align-items: center;
+  max-width: 1080px; margin: 0 auto 24px;
+  padding: 14px 22px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px;
+  backdrop-filter: blur(6px);
+}
+.hud-left { display: flex; align-items: center; gap: 16px; }
+.hud-avatar {
+  width: 40px; height: 40px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--teal), var(--navy));
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; color: #FFFFFF;
+}
+.hud-name { font-size: 15px; color: #FFFFFF; font-weight: 600; }
+.hud-tier { font-size: 12px; color: var(--gold); letter-spacing: 0.08em; text-transform: uppercase; }
+
+.hud-center { display: flex; align-items: center; gap: 8px; }
+.progress-dots { display: flex; gap: 4px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.15); transition: background 300ms ease; }
+.dot.done { background: var(--teal); }
+.dot.current { background: var(--gold); transform: scale(1.3); }
+
+.hud-right { display: flex; align-items: center; gap: 10px; }
+.money-label { font-size: 11px; letter-spacing: 0.14em; color: var(--muted); text-transform: uppercase; }
+.money-value {
+  font-size: 26px; font-weight: 800;
+  color: #FFFFFF;
+  min-width: 140px; text-align: right;
+  font-variant-numeric: tabular-nums;
+  transition: color 400ms ease;
+}
+.money-value.gaining { color: var(--good); }
+.money-value.losing  { color: var(--bad); }
+
+/* ================== QUESTION CARD ================== */
+.q-card {
+  max-width: 1080px; margin: 0 auto;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 20px;
+  overflow: hidden;
+  backdrop-filter: blur(8px);
+}
+
+.q-banner {
+  background: var(--mod-primary);
+  padding: 26px 32px;
+  display: flex; justify-content: space-between; align-items: center;
+  position: relative;
+  overflow: hidden;
+}
+.q-banner::after {
+  content: ''; position: absolute; bottom: 0; left: 0; right: 0;
+  height: 4px; background: var(--mod-accent);
+}
+.q-banner-left { z-index: 2; }
+.q-tag {
+  font-size: 11px; letter-spacing: 0.2em; color: rgba(255,255,255,0.7);
+  text-transform: uppercase; margin-bottom: 4px;
+}
+.q-module {
+  font-size: 20px; font-weight: 700; color: #FFFFFF;
+}
+
+/* Timer ring */
+.timer-wrap { position: relative; width: 64px; height: 64px; z-index: 2; }
+.timer-ring { transform: rotate(-90deg); }
+.timer-ring-bg { stroke: rgba(255,255,255,0.18); fill: none; }
+.timer-ring-fg {
+  stroke: var(--gold); fill: none;
+  stroke-linecap: round;
+  stroke-dasharray: 176; stroke-dashoffset: 0;
+  transition: stroke-dashoffset 1000ms linear, stroke 300ms ease;
+}
+.timer-ring-fg.warning { stroke: #F08C28; }
+.timer-ring-fg.danger  { stroke: var(--bad); }
+.timer-text {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  font-size: 20px; font-weight: 700; color: #FFFFFF;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Scenario */
+.q-body { padding: 36px 40px 28px; }
+.q-setting {
+  font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--mod-accent); font-weight: 700; margin-bottom: 12px;
+}
+.q-prompt { font-size: 22px; font-weight: 600; color: #FFFFFF; margin-bottom: 16px; line-height: 1.35; }
+.q-scenario { font-size: 16px; color: #C9CED8; line-height: 1.65; margin-bottom: 28px; }
+
+/* Options */
+.options { display: flex; flex-direction: column; gap: 12px; padding: 0 40px 36px; }
+.option {
+  display: flex; align-items: flex-start; gap: 16px;
+  padding: 18px 22px;
+  background: rgba(255,255,255,0.04);
+  border: 2px solid rgba(255,255,255,0.08);
+  border-radius: 12px;
+  text-align: left;
+  width: 100%;
+  color: #E4E8F0; font-size: 15.5px; line-height: 1.5;
+  transition: all 180ms ease;
+}
+.option:hover:not(.locked) {
+  background: rgba(255,255,255,0.08);
+  border-color: var(--mod-accent);
+  transform: translateX(4px);
+}
+.option.locked { cursor: default; }
+.option.selected-correct { border-color: var(--good); background: rgba(46,194,126,0.12); }
+.option.selected-wrong   { border-color: var(--bad);  background: rgba(233,75,75,0.12); animation: shake 360ms ease; }
+.option.reveal-correct   { border-color: var(--good); background: rgba(46,194,126,0.08); }
+.option.reveal-wrong     { opacity: 0.5; }
+
+@keyframes shake {
+  0%,100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); } 40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); } 80% { transform: translateX(4px); }
+}
+
+.opt-letter {
+  flex: 0 0 32px; height: 32px; border-radius: 8px;
+  background: rgba(255,255,255,0.1);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 14px; color: #FFFFFF;
+}
+.option.selected-correct .opt-letter { background: var(--good); }
+.option.selected-wrong .opt-letter   { background: var(--bad); }
+.option.reveal-correct .opt-letter   { background: var(--good); }
+.opt-body { flex: 1; }
+
+/* ================== VERDICT REVEAL ================== */
+.verdict {
+  margin: 0 40px 32px; padding: 24px 28px;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.04);
+  border-left: 4px solid var(--mod-accent);
+  display: none;
+}
+.verdict.show { display: block; animation: slideUp 420ms ease; }
+@keyframes slideUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+.verdict-head {
+  display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;
+}
+.verdict-title { font-size: 16px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; }
+.verdict-title.good { color: var(--good); }
+.verdict-title.bad  { color: var(--bad); }
+.verdict-delta {
+  font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums;
+}
+.verdict-delta.good { color: var(--good); }
+.verdict-delta.bad  { color: var(--bad); }
+.verdict-body { font-size: 15px; color: #C9CED8; line-height: 1.6; }
+.verdict-footer { margin-top: 20px; display: flex; justify-content: flex-end; }
+
+/* ================== RESULTS ================== */
+.results-wrap { max-width: 1000px; margin: 0 auto; padding: 40px 24px; }
+.results-hero {
+  text-align: center; padding: 48px 32px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 20px; margin-bottom: 32px;
+}
+.results-tag {
+  font-size: 13px; letter-spacing: 0.2em; color: var(--muted);
+  text-transform: uppercase; margin-bottom: 12px;
+}
+.results-tier {
+  font-size: 15px; letter-spacing: 0.18em; color: var(--gold);
+  text-transform: uppercase; font-weight: 700; margin-bottom: 8px;
+}
+.results-title-big {
+  font-size: 48px; font-weight: 800;
+  background: linear-gradient(90deg, #FFFFFF 0%, #9BE2D3 100%);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+  margin-bottom: 16px;
+}
+.results-money {
+  font-size: 72px; font-weight: 900; color: #FFFFFF;
+  font-variant-numeric: tabular-nums; margin: 24px 0 8px;
+  text-shadow: 0 0 40px rgba(79, 183, 167, 0.3);
+}
+.results-caption { font-size: 16px; color: #C9CED8; }
+
+.results-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 32px;
+}
+.results-panel {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px;
+  padding: 24px;
+}
+.panel-title {
+  font-size: 13px; letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--teal); font-weight: 700; margin-bottom: 16px;
+}
+.stat-line {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.06);
+  font-size: 14.5px;
+}
+.stat-line:last-child { border-bottom: none; }
+.stat-line .k { color: #C9CED8; }
+.stat-line .v { color: #FFFFFF; font-weight: 700; font-variant-numeric: tabular-nums; }
+.stat-line .v.good { color: var(--good); }
+.stat-line .v.bad  { color: var(--bad); }
+
+.module-list { display: flex; flex-direction: column; gap: 8px; }
+.module-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 12px; border-radius: 8px;
+  background: rgba(255,255,255,0.03);
+  font-size: 13.5px;
+}
+.module-dot { width: 10px; height: 10px; border-radius: 50%; flex: 0 0 10px; }
+.module-name { flex: 1; color: #E4E8F0; }
+.module-score { font-weight: 700; font-variant-numeric: tabular-nums; }
+
+.leaderboard-panel {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px;
+  padding: 24px; margin-bottom: 32px;
+}
+.lb-row {
+  display: grid; grid-template-columns: 40px 1fr 100px 140px; gap: 12px;
+  padding: 12px 10px; font-size: 14px; align-items: center;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.lb-row.header { font-size: 11px; letter-spacing: 0.14em; color: var(--muted); text-transform: uppercase; }
+.lb-row:last-child { border-bottom: none; }
+.lb-row.self { background: rgba(245,184,46,0.1); border-radius: 8px; }
+.lb-rank { font-weight: 800; font-size: 16px; color: var(--gold); text-align: center; }
+.lb-name { color: #FFFFFF; font-weight: 600; }
+.lb-tier { color: var(--muted); font-size: 12px; }
+.lb-money { color: #FFFFFF; font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
+
+.results-actions { display: flex; gap: 12px; justify-content: center; }
+
+/* ================== TIER FLASH ================== */
+.tier-flash {
+  position: fixed; top: 30%; left: 50%; transform: translate(-50%, -50%);
+  background: linear-gradient(135deg, var(--gold), #FFD66E);
+  color: #1A1400; padding: 20px 48px; border-radius: 60px;
+  font-weight: 800; font-size: 18px; letter-spacing: 0.1em; text-transform: uppercase;
+  opacity: 0; pointer-events: none; transition: opacity 400ms ease, transform 400ms ease;
+  box-shadow: 0 20px 60px rgba(245,184,46,0.5);
+  z-index: 100; white-space: nowrap;
+}
+.tier-flash.show { opacity: 1; transform: translate(-50%, -60%); }
+
+/* ================== CONFETTI ================== */
+.confetti {
+  position: fixed; width: 10px; height: 14px; top: -20px;
+  pointer-events: none; z-index: 50;
+  animation: fall 1800ms ease-in forwards;
+}
+@keyframes fall {
+  0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+}
+
+/* ================== RESPONSIVE ================== */
+@media (max-width: 760px) {
+  .title { font-size: 44px; }
+  .subtitle { font-size: 18px; }
+  .rules-grid { grid-template-columns: 1fr; }
+  .results-grid { grid-template-columns: 1fr; }
+  .q-body { padding: 24px 20px 20px; }
+  .options { padding: 0 20px 24px; }
+  .verdict { margin: 0 20px 24px; padding: 18px 20px; }
+  .q-banner { padding: 18px 20px; }
+  .q-module { font-size: 15px; }
+  .hud { flex-wrap: wrap; gap: 12px; }
+  .money-value { font-size: 20px; min-width: 110px; }
+  .results-money { font-size: 52px; }
+  .results-title-big { font-size: 32px; }
+  .lb-row { grid-template-columns: 32px 1fr 80px; }
+  .lb-tier { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- ============ SPLASH SCREEN ============ -->
+<div class="screen active" id="splash">
+  <div class="splash-wrap">
+    <div class="brand-mark">intreensic</div>
+    <div class="brand-tag">Mastering Dispute Management | Simulation</div>
+
+    <h1 class="title">The Dispute Desk</h1>
+    <p class="subtitle">Twenty live dispute scenarios. One minute to decide on each. Real money on the line. Your call shapes your career.</p>
+
+    <div class="stat-row">
+      <div class="stat-chip">Starting capital: <b>$100,000</b></div>
+      <div class="stat-chip">Questions: <b>20</b></div>
+      <div class="stat-chip">Time per call: <b>60 seconds</b></div>
+      <div class="stat-chip">Career tiers: <b>7</b></div>
+    </div>
+
+    <form class="name-form" id="nameForm" autocomplete="off">
+      <input type="text" id="playerName" class="name-input" placeholder="Enter your name to begin" maxlength="32" required>
+      <button type="submit" class="primary-btn">Start the shift</button>
+    </form>
+
+    <div class="rules-card">
+      <div class="rules-title">How it works</div>
+      <div class="rules-grid">
+        <div class="rule"><div class="rule-n">1</div><div class="rule-text">Twenty disputes hit your desk, two per module. Each one carries a real financial outcome.</div></div>
+        <div class="rule"><div class="rule-n">2</div><div class="rule-text">You have sixty seconds per call. A clock runs. When it hits zero your silence is a decision.</div></div>
+        <div class="rule"><div class="rule-n">3</div><div class="rule-text">Correct calls grow your budget authority. Wrong calls burn it.</div></div>
+        <div class="rule"><div class="rule-n">4</div><div class="rule-text">Answer order is shuffled on every run. Memorizing position will not help you.</div></div>
+        <div class="rule"><div class="rule-n">5</div><div class="rule-text">Every $50K crossed unlocks a career tier. Chief Payments Officer sits at the top.</div></div>
+        <div class="rule"><div class="rule-n">6</div><div class="rule-text">Final money ranks you on the desk leaderboard. Only the sharpest decisions hold the top.</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ GAME SCREEN ============ -->
+<div class="screen" id="game">
+  <div class="hud">
+    <div class="hud-left">
+      <div class="hud-avatar" id="hudAvatar">?</div>
+      <div>
+        <div class="hud-name" id="hudName">Analyst</div>
+        <div class="hud-tier" id="hudTier">Junior Dispute Analyst</div>
+      </div>
+    </div>
+    <div class="hud-center">
+      <div class="progress-dots" id="progressDots"></div>
+    </div>
+    <div class="hud-right">
+      <div>
+        <div class="money-label">Budget authority</div>
+        <div class="money-value" id="moneyValue">$100,000</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="q-card">
+    <div class="q-banner">
+      <div class="q-banner-left">
+        <div class="q-tag" id="qTag">Question 01 | Module 01</div>
+        <div class="q-module" id="qModule">Strategic Importance</div>
+      </div>
+      <div class="timer-wrap">
+        <svg class="timer-ring" width="64" height="64">
+          <circle class="timer-ring-bg" cx="32" cy="32" r="28" stroke-width="5"/>
+          <circle class="timer-ring-fg" id="timerFg" cx="32" cy="32" r="28" stroke-width="5"/>
+        </svg>
+        <div class="timer-text" id="timerText">60</div>
+      </div>
+    </div>
+    <div class="q-body">
+      <div class="q-setting" id="qSetting">Setting</div>
+      <div class="q-prompt" id="qPrompt">Prompt</div>
+      <div class="q-scenario" id="qScenario">Scenario text</div>
+    </div>
+    <div class="options" id="optionsList"></div>
+    <div class="verdict" id="verdict">
+      <div class="verdict-head">
+        <div class="verdict-title" id="verdictTitle">Verdict</div>
+        <div class="verdict-delta" id="verdictDelta">+$0</div>
+      </div>
+      <div class="verdict-body" id="verdictBody">Verdict body</div>
+      <div class="verdict-footer">
+        <button class="primary-btn" id="nextBtn">Next dispute</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ RESULTS SCREEN ============ -->
+<div class="screen" id="results">
+  <div class="results-wrap">
+    <div class="results-hero">
+      <div class="results-tag">End of shift</div>
+      <div class="results-tier" id="resTier">Career tier</div>
+      <div class="results-title-big" id="resName">Player</div>
+      <div class="results-money" id="resMoney">$0</div>
+      <div class="results-caption" id="resCaption">Performance summary</div>
+    </div>
+
+    <div class="results-grid">
+      <div class="results-panel">
+        <div class="panel-title">Decision scorecard</div>
+        <div class="stat-line"><span class="k">Correct decisions</span><span class="v good" id="statCorrect">0</span></div>
+        <div class="stat-line"><span class="k">Wrong decisions</span><span class="v bad" id="statWrong">0</span></div>
+        <div class="stat-line"><span class="k">Timed out</span><span class="v bad" id="statTimeout">0</span></div>
+        <div class="stat-line"><span class="k">Biggest gain</span><span class="v good" id="statBestGain">$0</span></div>
+        <div class="stat-line"><span class="k">Biggest loss</span><span class="v bad" id="statWorstLoss">$0</span></div>
+        <div class="stat-line"><span class="k">Net change</span><span class="v" id="statNet">$0</span></div>
+      </div>
+      <div class="results-panel">
+        <div class="panel-title">Module performance</div>
+        <div class="module-list" id="moduleList"></div>
+      </div>
+    </div>
+
+    <div class="leaderboard-panel">
+      <div class="panel-title">Desk leaderboard | Top 10</div>
+      <div class="lb-row header"><div>#</div><div>Analyst</div><div>Tier</div><div>Money</div></div>
+      <div id="lbRows"></div>
+    </div>
+
+    <div class="results-actions">
+      <button class="primary-btn" id="playAgainBtn">Play again</button>
+      <button class="ghost-btn" id="clearLbBtn">Clear leaderboard</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ==================== PALETTES (MATCH COURSE MODULES) ==================== */
+const PALETTES = {
+  1:  { primary: "#14284E", accent: "#00695C", tint: "#E6F0EE", name: "Strategic Importance" },
+  2:  { primary: "#00695C", accent: "#FF6F61", tint: "#FDE8E5", name: "Global Dispute Management Ecosystem" },
+  3:  { primary: "#6B1E2C", accent: "#D4A24B", tint: "#FAF2E0", name: "Reason Codes and Dispute Taxonomy" },
+  4:  { primary: "#14284E", accent: "#F28C28", tint: "#FCE9D6", name: "Dispute Lifecycle and Chargeback Mechanics" },
+  5:  { primary: "#1F1F24", accent: "#C8102E", tint: "#FBE2E6", name: "Fraud Disputes and Compelling Evidence" },
+  6:  { primary: "#1F4E3D", accent: "#C06B4F", tint: "#F6E4DE", name: "Non-Fraud Disputes" },
+  7:  { primary: "#2F3E46", accent: "#C9A227", tint: "#F7EECE", name: "Evidence and Representment" },
+  8:  { primary: "#2E2A6E", accent: "#3DDC97", tint: "#D6F7E8", name: "Monitoring and Operations" },
+  9:  { primary: "#1F3AC7", accent: "#9FD800", tint: "#EEF7CC", name: "Prevention and Technology" },
+  10: { primary: "#0C1B33", accent: "#E0537A", tint: "#FBE0E9", name: "Regulatory Framework and Best Practices" }
+};
+
+/* ==================== TIERS ==================== */
+const TIERS = [
+  { min: 0,       title: "Dispute Analyst (Probation)" },
+  { min: 50000,   title: "Junior Dispute Analyst" },
+  { min: 100000,  title: "Dispute Analyst" },
+  { min: 150000,  title: "Senior Dispute Analyst" },
+  { min: 200000,  title: "Dispute Manager" },
+  { min: 275000,  title: "Director of Dispute Operations" },
+  { min: 350000,  title: "VP of Payment Risk" },
+  { min: 450000,  title: "Chief Payments Officer" }
+];
+
+function tierFor(amount) {
+  let current = TIERS[0];
+  for (const t of TIERS) if (amount >= t.min) current = t;
+  return current;
+}
+
+/* ==================== QUESTIONS (20) ==================== */
+const QUESTIONS = [
+  {
+    module: 1,
+    setting: "Tuesday, 08:12 | Lagos | Ops queue review",
+    prompt: "Eleven low-value disputes overnight",
+    scenario: "Sixty-two chargebacks dropped into the queue overnight. Eleven of them are worth under $30 each. Your team's average pack-build cost is $85 in analyst time. The rest of the queue is full. What is your call on the eleven low-value cases?",
+    options: [
+      { text: "Auto-accept all eleven. The $85 pack cost exceeds the $30 exposure on each case.",                        correct: true,  delta:  8000,  why: "You protected the team's hourly capacity and avoided negative expected value. Economic discipline is the first rule of dispute ops." },
+      { text: "Represent all eleven. Chargeback defense is about signal, not unit economics.",                            correct: false, delta: -8000,  why: "You burned roughly $850 of analyst time to contest $330 of exposure. The signal is not worth the cost." },
+      { text: "Represent only cases above $20 exposure to split the operational difference.",                             correct: false, delta: -3000,  why: "An arbitrary line does not fix the math. The pack cost still exceeds the exposure." },
+      { text: "Refund all eleven pre-chargeback to remove them from the representment queue.",                            correct: false, delta: -4000,  why: "Proactive refunds on lost cases double the cost: you pay the principal and lose the acceptance data." }
+    ]
+  },
+  {
+    module: 1,
+    setting: "Board prep week | Concentration risk call",
+    prompt: "A top merchant trips the VDMP warning",
+    scenario: "Your top-ten merchant represents 18% of MRR and just triggered a pre-VDMP warning letter. The CFO wants them protected. Compliance wants them offboarded. Your decision goes on the Friday board deck.",
+    options: [
+      { text: "Tighten remediation with thirty-day milestones and weekly monitoring cadence.",                                    correct: true,  delta: 15000, why: "You preserved revenue, satisfied compliance, and created evidence of decisive action. Buying time with discipline is the senior move." },
+      { text: "Offboard immediately. A VDMP breach carries multi-month reputation and cost risk.",                                correct: false, delta: -10000, why: "You abandoned 18% of MRR on a letter, not a breach. The CFO will ask for your head by Monday." },
+      { text: "Hold steady. Dispute rates fluctuate and a warning letter does not require action.",                               correct: false, delta: -25000, why: "The merchant breached threshold inside six weeks. You absorbed placement fees, fines, and a board-level incident." },
+      { text: "Cap merchant volume by 50% to mechanically reduce the dispute count this cycle.",                                  correct: false, delta: 3000,   why: "You reduced exposure but halved the revenue and did not fix the underlying issue. A partial answer." }
+    ]
+  },
+  {
+    module: 2,
+    setting: "Cross-rail case | Accra",
+    prompt: "Duplicate-processing on a split itinerary",
+    scenario: "A passenger dispute hits two rails at once. The Visa leg ($640) settled and was coded 12.6.2 with a full VCR window. The Verve leg ($180) resolved bilaterally and was already accepted by your acquirer. Which leg do you defend?",
+    options: [
+      { text: "Represent the Visa leg with timed evidence. Accept the Verve leg as already closed.",                                              correct: true,  delta: 6000,  why: "You matched defense to rail. Visa's 12.6.2 framework allows compelling evidence. Verve was already resolved and is not recoverable." },
+      { text: "Represent both legs with a single evidence pack covering the complete itinerary.",                                                 correct: false, delta: -4000, why: "You applied Visa's evidence framework to a rail that does not use it. The Verve dispute was already closed anyway." },
+      { text: "Accept both legs. Customer relationship matters more than a split-rail recovery.",                                                 correct: false, delta: -8000, why: "You abandoned a winnable Visa case. Customer relationship and dispute defense are separate decisions." },
+      { text: "Escalate the full amount directly to the scheme without an initial representment.",                                                correct: false, delta: -2000, why: "You skipped the correct stage. Escalation is not a substitute for compelling evidence at representment." }
+    ]
+  },
+  {
+    module: 2,
+    setting: "Unusual email | 14:40",
+    prompt: "Direct contact from an issuer investigator",
+    scenario: "An issuer's fraud investigator emails you directly to ask for transaction details on a dispute in flight. The normal flow routes through your acquirer. Your intake team asks whether to respond.",
+    options: [
+      { text: "Redirect the issuer to your acquirer and log the out-of-channel contact attempt.",                  correct: true,  delta: 4000,  why: "You followed scheme rules. Direct issuer contact outside the acquirer violates procedure and can void representment." },
+      { text: "Respond directly with transaction detail. Fast cooperation closes cases sooner.",                   correct: false, delta: -6000, why: "You bypassed the acquirer and may have violated scheme procedure. Fast cooperation here is not worth the compliance risk." },
+      { text: "Ignore the email. Anything outside the standard channel is almost certainly phishing.",             correct: false, delta: -3000, why: "You may have been right about phishing but your silence can be read as non-cooperation. A redirect is the right call." },
+      { text: "Copy the acquirer on the reply but respond anyway to keep momentum on the case.",                   correct: false, delta: -2000, why: "You still shared data outside the channel. A courtesy CC does not correct the procedural breach." }
+    ]
+  },
+  {
+    module: 3,
+    setting: "Reason-code triage | Tuesday",
+    prompt: "A 13.1 that reads like a 13.3",
+    scenario: "Your acquirer coded an incoming dispute as Visa 13.1 (Services Not Provided). The cardholder's written complaint says the product was not as described and arrived damaged. Your pack template is 13.1. What do you do?",
+    options: [
+      { text: "Request a recode to Visa 13.3 and rebuild the defense template to match the claim.",                                    correct: true,  delta: 7000,  why: "Reason code drives evidence burden. A 13.3 defense is photographs plus product description alignment. You set up a winnable case." },
+      { text: "Keep the 13.1 coding and represent with clean proof of delivery documentation.",                                        correct: false, delta: -5000, why: "You defended a claim the cardholder did not make. The issuer dismisses the pack as non-responsive." },
+      { text: "Recode to Visa 13.5 Misrepresentation for a stronger scheme-level legal position.",                                     correct: false, delta: -4000, why: "13.5 carries a much higher evidence bar. You moved to a code you cannot meet." },
+      { text: "Accept the dispute as coded. Quality complaints historically have low win rates.",                                      correct: false, delta: -3000, why: "You accepted a defensible case because the starting code was wrong. Recode first, then decide." }
+    ]
+  },
+  {
+    module: 3,
+    setting: "MC 4837 | Evidence review",
+    prompt: "Mastercard fraud case with 24 months of history",
+    scenario: "A dispute filed under Mastercard 4837 (No Cardholder Authorization). You check compelling-evidence eligibility and find the cardholder has 24 months of prior successful orders at the same address, same device, same card.",
+    options: [
+      { text: "Build the pack on Mastercard's compelling-evidence pathway with 24-month history.",                              correct: true,  delta: 12000, why: "Mastercard honors historical relationship evidence on 4837 cases. Twenty-four months of pattern is powerful Tier 3 defense." },
+      { text: "Accept the dispute. Compelling-evidence frameworks only apply to Visa cases.",                                    correct: false, delta: -8000, why: "Mastercard has its own historical-evidence provisions. You threw away a winnable case on a false premise." },
+      { text: "Ask the issuer to recode into a Visa equivalent to unlock the CE 3.0 pathway.",                                   correct: false, delta: -5000, why: "Issuers do not recode across schemes. That is not how scheme rules work." },
+      { text: "Represent on transaction data only. Prior order history adds noise to the pack.",                                 correct: false, delta: -3000, why: "You submitted a weaker pack than the rules permit. The evidence you left behind was your best card." }
+    ]
+  },
+  {
+    module: 4,
+    setting: "Monday morning | Missed deadline",
+    prompt: "The representment window closed yesterday",
+    scenario: "You just learned the representment window on a $4,200 chargeback closed yesterday. The chargeback ruling is technically final. Pre-arbitration window is open for another 28 days.",
+    options: [
+      { text: "File a pre-arbitration challenge with fresh evidence inside the 28-day window.",            correct: true,  delta: 10000, why: "Pre-arbitration exists exactly for missed representment windows when compelling new evidence is available. You saved the case." },
+      { text: "Accept the loss. Once the representment window closes, the ruling becomes final.",          correct: false, delta: -7000, why: "You abandoned a case with a live pre-arbitration path. Knowing the lifecycle exists is not the same as using it." },
+      { text: "File a late representment and appeal the scheme's timeliness rule for mercy.",              correct: false, delta: -5000, why: "Schemes do not accept late representment appeals. The window is absolute." },
+      { text: "Skip representment entirely and escalate the matter directly into arbitration.",            correct: false, delta: -12000, why: "Arbitration is the last stage and carries $500 loser-pays exposure. You skipped the cheaper stage with stronger tools." }
+    ]
+  },
+  {
+    module: 4,
+    setting: "Pre-arb math | Weak evidence",
+    prompt: "Escalate a $2,400 case with Tier 2 only?",
+    scenario: "You are in pre-arbitration on a $2,400 recurring SaaS dispute. Arbitration loser-pays fee is $500. Your evidence is Tier 2 service-logs only, no Tier 1 transaction evidence on the renewal.",
+    options: [
+      { text: "Decline to escalate. Weak evidence plus the $500 fee risk favors acceptance.",               correct: true,  delta: 5000,  why: "You ran the expected-value calculation. On weak evidence the arbitration fee risk exceeds the recovery. Acceptance is correct." },
+      { text: "Escalate to arbitration. A $2,400 case is worth the $500 fee to defend on principle.",       correct: false, delta: -8000, why: "You chose conviction over math. The case lost and you paid the $500 fee on top." },
+      { text: "Pursue the customer directly for the $2,400 through normal collections channels.",           correct: false, delta: -3000, why: "Direct customer pursuit on a disputed charge is a collections action and damages relationship without scheme leverage." },
+      { text: "Offer the customer a 50% refund in exchange for withdrawing the dispute filing.",            correct: false, delta: -6000, why: "Issuers rarely allow cardholder withdrawal at pre-arb, and the customer already received service. You paid to lose." }
+    ]
+  },
+  {
+    module: 5,
+    setting: "Fraud cluster analysis | Q3",
+    prompt: "A pattern that looks like fraud but is not",
+    scenario: "A dispute cluster. Customer denies the transaction. Device and IP match prior legitimate orders. Shipping address matches billing. Thirty-five percent of your fraud-coded volume looks like this.",
+    options: [
+      { text: "Classify as first-party family fraud. Defend with CE 3.0 historical-order data.",                                  correct: true,  delta: 11000, why: "The signature is a family-card scenario, not third-party fraud. CE 3.0 was built for this pattern." },
+      { text: "Classify as account takeover. Accept the losses and write off the 35% volume.",                                    correct: false, delta: -9000, why: "ATO would show device or IP change, not continuity. You misdiagnosed the cluster and abandoned 35% of your fraud volume." },
+      { text: "Classify as true third-party fraud. Accept the loss and note the cluster pattern.",                                correct: false, delta: -7000, why: "Third-party fraud would not show matching device, IP, and shipping. You accepted defensible cases." },
+      { text: "Classify as synthetic identity and hand the entire cluster to the risk team.",                                     correct: false, delta: -4000, why: "Synthetic-identity patterns do not show legitimate order history. The diagnosis does not fit the evidence." }
+    ]
+  },
+  {
+    module: 5,
+    setting: "Streaming subscription dispute",
+    prompt: "Denied a charge after 18 uses in 30 days",
+    scenario: "A recurring streaming dispute. The cardholder denies authorizing the charge. Your platform logs show the account accessed service eighteen times in the thirty days before the dispute, from the customer's usual IP.",
+    options: [
+      { text: "Submit usage logs, IP match, and access timestamps as compelling evidence.",                                       correct: true,  delta: 9000,  why: "Eighteen uses in thirty days is nearly unassailable evidence of ongoing authorized use. The pack nearly writes itself." },
+      { text: "Accept the dispute per standard streaming-refund policy and avoid the friction.",                                  correct: false, delta: -6000, why: "You accepted a highly defensible case. Policy is not a substitute for looking at the facts." },
+      { text: "Represent with terms and conditions only. Clean T&Cs carry the argument here.",                                    correct: false, delta: -4000, why: "T&Cs alone are weak evidence. The usage log was the argument you needed to make." },
+      { text: "Request a written statement from the customer to clarify intent before filing.",                                   correct: false, delta: -2000, why: "Asking for customer cooperation inside an active dispute is slow and unnecessary. The evidence is already in your logs." }
+    ]
+  },
+  {
+    module: 6,
+    setting: "Policy backfire | Gym chain",
+    prompt: "Seventy-four disputes after a policy tightening",
+    scenario: "Your 30-day cancellation policy change triggered 74 Visa 13.2 disputes. Only 31% of members acknowledged the change. Your team is representing everything with a copy of the new policy.",
+    options: [
+      { text: "Accept the 69% unacknowledged disputes and focus defense on the acknowledged 31%.",                        correct: true,  delta: 13000, why: "Compelling evidence for 13.2 requires proof of notice and acknowledgment. You focused resources on defensible cases only." },
+      { text: "Represent all 74 disputes with the revised policy document as the primary evidence.",                      correct: false, delta: -11000, why: "Without acknowledgment evidence you are defending with a policy the customer never saw. The packs fail." },
+      { text: "Accept all 74 and roll the policy change back to pre-revision terms immediately.",                         correct: false, delta: -8000, why: "You surrendered the defensible 31% with the indefensible 69%. A blanket retreat costs more than focused defense." },
+      { text: "Offer every disputing member a 50% refund in exchange for dispute withdrawal.",                            correct: false, delta: -6000, why: "Customers who already disputed have little incentive to withdraw for half their money. You paid without gaining." }
+    ]
+  },
+  {
+    module: 6,
+    setting: "Digital goods | Server logs available",
+    prompt: "A download dispute with a full completion log",
+    scenario: "A cardholder disputes a digital-goods purchase. Your server log shows the download completed successfully from the customer's registered IP. Dispute amount $340.",
+    options: [
+      { text: "Submit download log, IP match, and timestamp as the Visa 13.1 defense evidence.",           correct: true,  delta: 8000,  why: "Service-delivery evidence for digital goods is the log itself. IP-matched download is a clean Tier 2 defense." },
+      { text: "Accept the dispute. Digital-goods cases historically show weak representment outcomes.",    correct: false, delta: -5000, why: "Aggregate win rates are not case-level evidence. Yours had clean logs and should have been defended." },
+      { text: "Send only terms and conditions in the pack. Clean T&Cs are sufficient for 13.1.",           correct: false, delta: -3000, why: "T&Cs without the delivery proof leave the strongest argument on the table." },
+      { text: "Refund the customer and flag the account to block future purchase attempts.",               correct: false, delta: -4000, why: "You refunded a defensible case and added churn risk for a legitimate customer." }
+    ]
+  },
+  {
+    module: 7,
+    setting: "Pack build | $1,800 at stake",
+    prompt: "Three evidence slots, four hours to submit",
+    scenario: "You are defending a $1,800 CNP fraud case. Pack build has capacity for three evidence items and four hours until deadline. Which three go in?",
+    options: [
+      { text: "3DS result, IP and device fingerprint, AVS/CVV match. Tier 1 signals first.",                              correct: true,  delta: 7000,  why: "Issuers rule on Tier 1 evidence first. Transaction signals are what convert to recovery. You loaded the strongest items." },
+      { text: "Terms and conditions, refund policy, and a signed delivery receipt from transit.",                         correct: false, delta: -4000, why: "All three are Tier 2 or policy evidence. None of them addresses the fraud claim at the transaction level." },
+      { text: "Email correspondence history, refund policy statement, and shipping tracking log.",                        correct: false, delta: -3000, why: "Policy and logistics evidence does not refute a fraud denial. The issuer wants to see the transaction itself." },
+      { text: "All 38 pages of documentation on file. Volume tells the full story to the issuer.",                        correct: false, delta: -2000, why: "Issuer analysts spend three minutes per pack. Volume without focus dilutes your argument." }
+    ]
+  },
+  {
+    module: 7,
+    setting: "Deadline in four hours | Incomplete pack",
+    prompt: "Submit incomplete or miss the window?",
+    scenario: "Your representment pack is 80% ready. Device fingerprint data was lost from logs. The deadline is four hours away. The ops team is split between filing now and requesting an extension.",
+    options: [
+      { text: "File now with a cover letter noting the gap. On-time partial beats no filing.",          correct: true,  delta: 5000,  why: "An on-time pack at 80% always outperforms a missed deadline at 100%. The cover letter turns the gap into transparency." },
+      { text: "Miss the deadline by hours to assemble complete evidence before submission.",            correct: false, delta: -8000, why: "Once the deadline passes, the case is lost regardless of evidence quality. Timeliness is not negotiable." },
+      { text: "File the pack as it stands without any cover letter explaining the missing item.",       correct: false, delta: -3000, why: "You filed on time but hid the gap. Issuer analysts will assume the missing item was unfavorable." },
+      { text: "Request a deadline extension from the acquirer citing the log data loss issue.",         correct: false, delta: -4000, why: "Acquirers rarely extend scheme-mandated windows and you lost the hours trying. File on time with what you have." }
+    ]
+  },
+  {
+    module: 8,
+    setting: "Ops dashboard alert | Tuesday",
+    prompt: "Merchant at 0.85% trailing-30 dispute rate",
+    scenario: "Your dashboard fires a red alert. Merchant X hit a 0.85% trailing-30 dispute ratio. VDMP Standard threshold is 0.9%. You have two weeks of runway before a breach would trigger a warning letter.",
+    options: [
+      { text: "Trigger remediation today. Enroll in chargeback alerts and move to weekly reporting.",                                    correct: true,  delta: 14000, why: "You acted on a leading indicator with interventions that fire in days. This is exactly why the dashboard exists." },
+      { text: "Wait for the next monthly review. The merchant is still below the formal threshold.",                                     correct: false, delta: -20000, why: "The merchant breached during the month. You paid program fees and remediation costs that a two-week intervention would have prevented." },
+      { text: "Offboard the merchant immediately to remove the entire portfolio exposure at once.",                                      correct: false, delta: -15000, why: "You killed the revenue on a leading-indicator alert. Offboarding is a last-resort action, not a first response." },
+      { text: "Send a warning email only. Documentation of notification is the required first step.",                                    correct: false, delta: -8000, why: "An email does not move dispute rate. You satisfied a compliance checkbox while the trend continued." }
+    ]
+  },
+  {
+    module: 8,
+    setting: "Team performance review",
+    prompt: "Win rate 22% versus benchmark 38-42%",
+    scenario: "Your representment win rate is 22% against a scheme benchmark of 38 to 42% for your merchant mix. The team is demoralized and the COO wants a plan.",
+    options: [
+      { text: "Audit the last 50 packs against the three-tier framework and rebuild the template.",                                    correct: true,  delta: 9000,  why: "Win-rate gaps are almost always evidence-completeness gaps. The audit surfaces the issue; the template fixes it." },
+      { text: "Hire more analysts to increase pack throughput and recover the benchmark win rate.",                                    correct: false, delta: -6000, why: "You added capacity to a broken process. More packs at 22% is more of the same problem." },
+      { text: "Outsource representment to a specialist vendor with a benchmark-grade win rate.",                                       correct: false, delta: -4000, why: "Outsourcing a broken process imports the problem to another team. The root cause remains." },
+      { text: "Accept the gap and redirect the effort entirely into prevention programs instead.",                                     correct: false, delta: -3000, why: "Prevention and representment are both live levers. Abandoning one halves your defensive surface." }
+    ]
+  },
+  {
+    module: 9,
+    setting: "Q4 prevention budget",
+    prompt: "$15K monthly. Fund one layer first.",
+    scenario: "You have $15,000 monthly to invest in prevention. You can fund one defense layer this quarter. Your volume is CNP e-commerce with 48% friendly fraud.",
+    options: [
+      { text: "Chargeback alerts (CDRN or Ethoca). Resolves disputes pre-formal in days, not weeks.",                                       correct: true,  delta: 18000, why: "Time-to-impact plus resolution rate make alerts the highest ROI intervention for a friendly-fraud-heavy portfolio." },
+      { text: "Full 3DS 2.2 rollout across every transaction on the portfolio this quarter.",                                               correct: false, delta: -2000, why: "3DS is valuable but takes weeks to roll out and hurts approval rates on low-risk traffic. Sequencing matters." },
+      { text: "Risk-engine tuning with ML scoring retrained on the last twelve months of fraud.",                                           correct: false, delta: -5000, why: "Risk tuning is a multi-month project with uncertain near-term impact. Not the right first move at $15K monthly." },
+      { text: "Customer-facing self-service refund portal to absorb avoidable disputes upstream.",                                          correct: false, delta: 4000,  why: "A refund portal reduces refundable disputes, which is decent ROI, but lower-impact than alerts for a friendly-fraud portfolio." }
+    ]
+  },
+  {
+    module: 9,
+    setting: "CFO meeting | 3DS pressure",
+    prompt: "Mandatory 3DS on every transaction?",
+    scenario: "The CFO wants mandatory 3DS 2.2 on every transaction to push fraud liability to issuers. You know blanket enrollment will cause a legitimate decline uplift of 3 to 5 percentage points.",
+    options: [
+      { text: "Risk-based 3DS on high-risk segments only. Preserve approval on clean traffic.",                                                                correct: true,  delta: 10000, why: "Risk-based 3DS gives you the liability shift where it matters and keeps approval high on clean traffic. Senior-level nuance." },
+      { text: "Enroll all transactions in 3DS. The liability shift outweighs the decline-rate cost.",                                                          correct: false, delta: -7000, why: "You traded 3-5 points of approval rate for a liability shift you only needed on a minority of traffic." },
+      { text: "Reject the CFO ask. 3DS friction outweighs the marginal liability protection.",                                                                 correct: false, delta: -5000, why: "You kept approval rates high but left fraud liability on the table. A binary 'no' is not a strategic response." },
+      { text: "Enroll international transactions only. Foreign geography is the main risk marker.",                                                            correct: false, delta: -2000, why: "Geography is a weak proxy for risk. Partial enrollment on the wrong axis leaves real risk uncovered." }
+    ]
+  },
+  {
+    module: 10,
+    setting: "Regulatory letter | CBN",
+    prompt: "New dispute-response SLA guidance",
+    scenario: "CBN issues new guidance suggesting dispute response within 5 business days (down from 10). Your current SLA is 10 days. The guidance is advisory but is likely to become mandatory within 12 months.",
+    options: [
+      { text: "Tighten SLA to 5 days now. Early compliance builds credibility with the regulator.",                                correct: true,  delta: 8000,  why: "Early compliance signals credibility to the regulator and flushes out operational gaps before they become mandate-day emergencies." },
+      { text: "Wait for the formal mandate before adjusting internal SLA or operating procedures.",                               correct: false, delta: -10000, why: "You surrendered the goodwill window. On mandate day you will scramble under more pressure with less time." },
+      { text: "Lobby the regulator for a longer SLA timeline citing operational change burden.",                                  correct: false, delta: -6000, why: "Lobbying against a tightening trend consumes political capital and rarely succeeds. Compliance posture is cheaper." },
+      { text: "Comply on new disputes only. Grandfather existing cases under the 10-day standard.",                               correct: false, delta: -3000, why: "Selective compliance creates a two-tier SLA that auditors will flag as inconsistent. Go to 5 days across the board." }
+    ]
+  },
+  {
+    module: 10,
+    setting: "CEO conference room | You have one minute",
+    prompt: "'What is our dispute posture today, and in 90 days?'",
+    scenario: "The CEO writes one question on a notepad and waits. One page, one minute, no jargon. Everything the programme has taught you converges on the next sixty seconds.",
+    options: [
+      { text: "Three numbers (rate, win rate, VDMP proximity). Three moves. One 90-day target.",                                                        correct: true,  delta: 25000, why: "You answered the question the CEO actually asked with the structure the CEO needs. This is the synthesis the capstone was built to test." },
+      { text: "A structured list of every project currently in flight across the dispute ops team.",                                                    correct: false, delta: -15000, why: "You turned the brief into a status report. The CEO asked for posture, not inventory." },
+      { text: "State posture simply: we are fine and sitting well below every relevant threshold.",                                                     correct: false, delta: -20000, why: "You answered the question the CEO did not ask and invited a follow-up nobody was ready for. Confidence without evidence is the worst posture to take." },
+      { text: "Ask for the weekend. Pull the full data package and come back prepared on Friday.",                                                      correct: false, delta: -10000, why: "You deferred an executive synthesis you were supposed to already own. The question will be asked of someone else next time." }
+    ]
+  }
+];
+
+/* ==================== GAME STATE ==================== */
+const STATE = {
+  playerName: "",
+  money: 100000,
+  current: 0,
+  correctCount: 0,
+  wrongCount: 0,
+  timeoutCount: 0,
+  bestGain: 0,
+  worstLoss: 0,
+  moduleScore: {},   // module -> money delta
+  questionDeltas: [],
+  shuffled: [],      // indices in played order (unchanged but options shuffled)
+  currentOptions: [],// shuffled option array for current q
+  answered: false,
+  timerInterval: null,
+  timeLeft: 60,
+  lastTierTitle: null
+};
+
+/* ==================== HELPERS ==================== */
+function fmtMoney(n) {
+  const sign = n < 0 ? "-" : "";
+  const abs = Math.abs(Math.round(n));
+  return sign + "$" + abs.toLocaleString();
+}
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+function initials(name) {
+  const parts = name.trim().split(/\s+/).slice(0, 2);
+  return parts.map(p => p[0].toUpperCase()).join("") || "?";
+}
+
+/* ==================== SCREEN NAV ==================== */
+function show(screenId) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(screenId).classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/* ==================== SPLASH ==================== */
+document.getElementById('nameForm').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const raw = document.getElementById('playerName').value.trim();
+  if (!raw) return;
+  STATE.playerName = raw;
+  document.getElementById('hudName').textContent = raw;
+  document.getElementById('hudAvatar').textContent = initials(raw);
+  startGame();
+});
+
+/* ==================== START ==================== */
+function startGame() {
+  STATE.money = 100000;
+  STATE.current = 0;
+  STATE.correctCount = 0;
+  STATE.wrongCount = 0;
+  STATE.timeoutCount = 0;
+  STATE.bestGain = 0;
+  STATE.worstLoss = 0;
+  STATE.moduleScore = {};
+  for (let i = 1; i <= 10; i++) STATE.moduleScore[i] = 0;
+  STATE.questionDeltas = [];
+  STATE.lastTierTitle = tierFor(STATE.money).title;
+
+  // build progress dots
+  const dotsWrap = document.getElementById('progressDots');
+  dotsWrap.innerHTML = "";
+  for (let i = 0; i < QUESTIONS.length; i++) {
+    const d = document.createElement('div');
+    d.className = 'dot';
+    dotsWrap.appendChild(d);
+  }
+
+  updateMoneyDisplay(STATE.money, { animate: false });
+  updateTier();
+  show('game');
+  loadQuestion();
+}
+
+/* ==================== LOAD QUESTION ==================== */
+function loadQuestion() {
+  STATE.answered = false;
+  STATE.timeLeft = 60;
+
+  const q = QUESTIONS[STATE.current];
+  const palette = PALETTES[q.module];
+
+  // apply palette variables
+  document.documentElement.style.setProperty('--mod-primary', palette.primary);
+  document.documentElement.style.setProperty('--mod-accent',  palette.accent);
+  document.documentElement.style.setProperty('--mod-tint',    palette.tint);
+
+  // header
+  document.getElementById('qTag').textContent = "Question " + String(STATE.current + 1).padStart(2, '0') + " | Module " + String(q.module).padStart(2, '0');
+  document.getElementById('qModule').textContent = palette.name;
+  document.getElementById('qSetting').textContent = q.setting;
+  document.getElementById('qPrompt').textContent = q.prompt;
+  document.getElementById('qScenario').textContent = q.scenario;
+
+  // shuffle options
+  STATE.currentOptions = shuffle(q.options);
+  const optsWrap = document.getElementById('optionsList');
+  optsWrap.innerHTML = "";
+  const letters = ['A', 'B', 'C', 'D'];
+  STATE.currentOptions.forEach((opt, idx) => {
+    const btn = document.createElement('button');
+    btn.className = 'option';
+    btn.setAttribute('data-idx', idx);
+    btn.innerHTML = `<span class="opt-letter">${letters[idx]}</span><span class="opt-body">${opt.text}</span>`;
+    btn.addEventListener('click', () => handleAnswer(idx));
+    optsWrap.appendChild(btn);
+  });
+
+  // hide verdict
+  document.getElementById('verdict').classList.remove('show');
+
+  // progress dots
+  document.querySelectorAll('.dot').forEach((d, i) => {
+    d.classList.remove('current', 'done');
+    if (i < STATE.current) d.classList.add('done');
+    if (i === STATE.current) d.classList.add('current');
+  });
+
+  // timer
+  document.body.classList.remove('tense');
+  startTimer();
+}
+
+/* ==================== TIMER ==================== */
+function startTimer() {
+  clearInterval(STATE.timerInterval);
+  const ring = document.getElementById('timerFg');
+  const text = document.getElementById('timerText');
+  const C = 2 * Math.PI * 28; // 175.929
+  ring.style.strokeDasharray = C;
+  ring.style.strokeDashoffset = 0;
+  ring.classList.remove('warning', 'danger');
+  text.style.color = '#FFFFFF';
+
+  STATE.timeLeft = 60;
+  text.textContent = STATE.timeLeft;
+
+  STATE.timerInterval = setInterval(() => {
+    if (STATE.answered) { clearInterval(STATE.timerInterval); return; }
+    STATE.timeLeft -= 1;
+    text.textContent = STATE.timeLeft;
+    const frac = STATE.timeLeft / 60;
+    ring.style.strokeDashoffset = C * (1 - frac);
+
+    if (STATE.timeLeft <= 20 && STATE.timeLeft > 10) {
+      ring.classList.add('warning');
+      ring.classList.remove('danger');
+    } else if (STATE.timeLeft <= 10) {
+      ring.classList.remove('warning');
+      ring.classList.add('danger');
+      text.style.color = '#E94B4B';
+      document.body.classList.add('tense');
+    }
+    if (STATE.timeLeft <= 0) {
+      clearInterval(STATE.timerInterval);
+      handleTimeout();
+    }
+  }, 1000);
+}
+
+/* ==================== ANSWER HANDLERS ==================== */
+function handleAnswer(idx) {
+  if (STATE.answered) return;
+  STATE.answered = true;
+  clearInterval(STATE.timerInterval);
+
+  const chosen = STATE.currentOptions[idx];
+  const delta = chosen.delta;
+  const correct = chosen.correct;
+
+  // update stats
+  if (correct) STATE.correctCount++; else STATE.wrongCount++;
+  if (delta > STATE.bestGain) STATE.bestGain = delta;
+  if (delta < STATE.worstLoss) STATE.worstLoss = delta;
+
+  const q = QUESTIONS[STATE.current];
+  STATE.moduleScore[q.module] = (STATE.moduleScore[q.module] || 0) + delta;
+  STATE.questionDeltas.push({ q: STATE.current + 1, delta, correct, module: q.module });
+
+  // visual reveal
+  const buttons = document.querySelectorAll('.option');
+  buttons.forEach((btn, bIdx) => {
+    btn.classList.add('locked');
+    const opt = STATE.currentOptions[bIdx];
+    if (bIdx === idx) {
+      btn.classList.add(correct ? 'selected-correct' : 'selected-wrong');
+    } else if (opt.correct) {
+      btn.classList.add('reveal-correct');
+    } else {
+      btn.classList.add('reveal-wrong');
+    }
+  });
+
+  if (correct) launchConfetti();
+
+  // money animation
+  const newMoney = STATE.money + delta;
+  animateMoney(STATE.money, newMoney, delta);
+  STATE.money = newMoney;
+
+  // verdict
+  const v = document.getElementById('verdict');
+  const vt = document.getElementById('verdictTitle');
+  const vd = document.getElementById('verdictDelta');
+  const vb = document.getElementById('verdictBody');
+  vt.textContent = correct ? "Correct call" : "Wrong call";
+  vt.className = 'verdict-title ' + (correct ? 'good' : 'bad');
+  vd.textContent = (delta >= 0 ? "+" : "") + fmtMoney(delta);
+  vd.className = 'verdict-delta ' + (delta >= 0 ? 'good' : 'bad');
+  vb.textContent = chosen.why;
+  v.classList.add('show');
+
+  // check for tier change
+  checkTierChange();
+}
+
+function handleTimeout() {
+  if (STATE.answered) return;
+  STATE.answered = true;
+  STATE.timeoutCount++;
+  STATE.wrongCount++;
+
+  // timeout = max penalty among wrong options for this question
+  const q = QUESTIONS[STATE.current];
+  const wrongDeltas = q.options.filter(o => !o.correct).map(o => o.delta);
+  const delta = Math.min(...wrongDeltas);
+  if (delta < STATE.worstLoss) STATE.worstLoss = delta;
+  STATE.moduleScore[q.module] = (STATE.moduleScore[q.module] || 0) + delta;
+  STATE.questionDeltas.push({ q: STATE.current + 1, delta, correct: false, module: q.module });
+
+  // lock options, reveal correct
+  const correctOpt = STATE.currentOptions.findIndex(o => o.correct);
+  document.querySelectorAll('.option').forEach((btn, bIdx) => {
+    btn.classList.add('locked');
+    if (bIdx === correctOpt) btn.classList.add('reveal-correct');
+    else btn.classList.add('reveal-wrong');
+  });
+
+  const newMoney = STATE.money + delta;
+  animateMoney(STATE.money, newMoney, delta);
+  STATE.money = newMoney;
+
+  const v = document.getElementById('verdict');
+  document.getElementById('verdictTitle').textContent = "Time expired";
+  document.getElementById('verdictTitle').className = 'verdict-title bad';
+  document.getElementById('verdictDelta').textContent = fmtMoney(delta);
+  document.getElementById('verdictDelta').className = 'verdict-delta bad';
+  document.getElementById('verdictBody').textContent = "Silence is a decision. The clock ran out and the worst-case outcome attached to this dispute. Triage speed is part of the job.";
+  v.classList.add('show');
+
+  checkTierChange();
+}
+
+/* ==================== TIER CHANGE FLASH ==================== */
+function checkTierChange() {
+  const newTier = tierFor(STATE.money).title;
+  if (newTier !== STATE.lastTierTitle) {
+    const isPromotion = TIERS.findIndex(t => t.title === newTier) > TIERS.findIndex(t => t.title === STATE.lastTierTitle);
+    showTierFlash((isPromotion ? "Promoted | " : "Demoted | ") + newTier);
+    STATE.lastTierTitle = newTier;
+    updateTier();
+  }
+}
+function showTierFlash(msg) {
+  let flash = document.querySelector('.tier-flash');
+  if (!flash) {
+    flash = document.createElement('div');
+    flash.className = 'tier-flash';
+    document.body.appendChild(flash);
+  }
+  flash.textContent = msg;
+  requestAnimationFrame(() => {
+    flash.classList.add('show');
+    setTimeout(() => flash.classList.remove('show'), 2200);
+  });
+}
+
+/* ==================== MONEY ANIMATION ==================== */
+function animateMoney(from, to, delta) {
+  const el = document.getElementById('moneyValue');
+  el.classList.remove('gaining', 'losing');
+  void el.offsetWidth;
+  el.classList.add(delta >= 0 ? 'gaining' : 'losing');
+  const duration = 900;
+  const start = performance.now();
+  function tick(t) {
+    const p = Math.min(1, (t - start) / duration);
+    const eased = 1 - Math.pow(1 - p, 3);
+    const v = Math.round(from + (to - from) * eased);
+    el.textContent = fmtMoney(v);
+    if (p < 1) requestAnimationFrame(tick);
+    else {
+      setTimeout(() => el.classList.remove('gaining', 'losing'), 400);
+    }
+  }
+  requestAnimationFrame(tick);
+}
+
+function updateMoneyDisplay(v, opts = {}) {
+  const el = document.getElementById('moneyValue');
+  el.textContent = fmtMoney(v);
+  if (opts.animate === false) el.classList.remove('gaining', 'losing');
+}
+
+function updateTier() {
+  const t = tierFor(STATE.money);
+  document.getElementById('hudTier').textContent = t.title;
+}
+
+/* ==================== CONFETTI ==================== */
+function launchConfetti() {
+  const colors = ['#00695C', '#F5B82E', '#2EC27E', '#4FB7A7', '#FFFFFF'];
+  for (let i = 0; i < 40; i++) {
+    const piece = document.createElement('div');
+    piece.className = 'confetti';
+    piece.style.left = (Math.random() * 100) + 'vw';
+    piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+    piece.style.animationDuration = (1200 + Math.random() * 900) + 'ms';
+    piece.style.transform = 'rotate(' + Math.floor(Math.random() * 360) + 'deg)';
+    document.body.appendChild(piece);
+    setTimeout(() => piece.remove(), 2400);
+  }
+}
+
+/* ==================== NEXT ==================== */
+document.getElementById('nextBtn').addEventListener('click', () => {
+  STATE.current++;
+  if (STATE.current >= QUESTIONS.length) {
+    finishGame();
+  } else {
+    loadQuestion();
+  }
+});
+
+/* ==================== FINISH ==================== */
+function finishGame() {
+  // save to leaderboard
+  const finalTier = tierFor(STATE.money).title;
+  saveToLeaderboard({
+    name: STATE.playerName,
+    money: STATE.money,
+    tier: finalTier,
+    correct: STATE.correctCount,
+    timestamp: Date.now()
+  });
+
+  // populate results
+  document.getElementById('resName').textContent = STATE.playerName;
+  document.getElementById('resTier').textContent = finalTier;
+  document.getElementById('resMoney').textContent = fmtMoney(STATE.money);
+
+  const net = STATE.money - 100000;
+  document.getElementById('resCaption').textContent =
+    (net >= 0 ? "Net gain: " : "Net loss: ") + fmtMoney(Math.abs(net)) + " across 20 decisions.";
+
+  document.getElementById('statCorrect').textContent = STATE.correctCount;
+  document.getElementById('statWrong').textContent = STATE.wrongCount - STATE.timeoutCount;
+  document.getElementById('statTimeout').textContent = STATE.timeoutCount;
+  document.getElementById('statBestGain').textContent = fmtMoney(STATE.bestGain);
+  document.getElementById('statWorstLoss').textContent = fmtMoney(STATE.worstLoss);
+  const netEl = document.getElementById('statNet');
+  netEl.textContent = (net >= 0 ? "+" : "") + fmtMoney(net);
+  netEl.className = 'v ' + (net >= 0 ? 'good' : 'bad');
+
+  // module list
+  const modList = document.getElementById('moduleList');
+  modList.innerHTML = "";
+  for (let m = 1; m <= 10; m++) {
+    const p = PALETTES[m];
+    const sc = STATE.moduleScore[m] || 0;
+    const row = document.createElement('div');
+    row.className = 'module-row';
+    row.innerHTML = `
+      <div class="module-dot" style="background:${p.accent}"></div>
+      <div class="module-name">M${String(m).padStart(2,'0')} | ${p.name}</div>
+      <div class="module-score" style="color:${sc >= 0 ? 'var(--good)' : 'var(--bad)'}">${(sc >= 0 ? '+' : '')}${fmtMoney(sc)}</div>
+    `;
+    modList.appendChild(row);
+  }
+
+  renderLeaderboard();
+  show('results');
+}
+
+/* ==================== LEADERBOARD ==================== */
+const LB_KEY = "dispute_desk_leaderboard_v1";
+
+function loadLeaderboard() {
+  try {
+    const raw = localStorage.getItem(LB_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) { return []; }
+}
+function saveToLeaderboard(entry) {
+  try {
+    const lb = loadLeaderboard();
+    lb.push(entry);
+    lb.sort((a, b) => b.money - a.money);
+    localStorage.setItem(LB_KEY, JSON.stringify(lb.slice(0, 50)));
+  } catch (e) { /* storage unavailable, skip */ }
+}
+function renderLeaderboard() {
+  const lb = loadLeaderboard().slice(0, 10);
+  const rows = document.getElementById('lbRows');
+  rows.innerHTML = "";
+  if (lb.length === 0) {
+    rows.innerHTML = '<div style="padding: 20px; color: var(--muted); text-align: center; font-size: 14px;">No recorded runs yet.</div>';
+    return;
+  }
+  lb.forEach((e, i) => {
+    const row = document.createElement('div');
+    row.className = 'lb-row';
+    const isSelf = (e.name === STATE.playerName && Math.abs(e.money - STATE.money) < 1 && Math.abs(e.timestamp - Date.now()) < 60000);
+    if (isSelf) row.classList.add('self');
+    row.innerHTML = `
+      <div class="lb-rank">${i + 1}</div>
+      <div>
+        <div class="lb-name">${escapeHtml(e.name)}</div>
+        <div class="lb-tier">${escapeHtml(e.tier)}</div>
+      </div>
+      <div class="lb-tier" style="text-align:left;">${escapeHtml(e.tier)}</div>
+      <div class="lb-money">${fmtMoney(e.money)}</div>
+    `;
+    // NOTE: lb-tier appears twice (narrow vs wide grid); handled by CSS hiding via .lb-row template columns
+    rows.appendChild(row);
+  });
+}
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+}
+
+/* ==================== RESULTS ACTIONS ==================== */
+document.getElementById('playAgainBtn').addEventListener('click', () => {
+  document.getElementById('playerName').value = STATE.playerName;
+  show('splash');
+});
+document.getElementById('clearLbBtn').addEventListener('click', () => {
+  if (confirm("Clear the local leaderboard? This cannot be undone.")) {
+    try { localStorage.removeItem(LB_KEY); } catch (e) {}
+    renderLeaderboard();
+  }
+});
+</script>
+</body>
+</html>
